@@ -1,5 +1,7 @@
 package ru.netology.servlet;
 
+import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import ru.netology.config.JavaConfig;
 import ru.netology.controller.PostController;
 import ru.netology.repository.PostRepository;
 import ru.netology.service.PostService;
@@ -13,34 +15,44 @@ public class MainServlet extends HttpServlet {
 
     @Override
     public void init() {
-        final var repository = new PostRepository();
-        final var service = new PostService(repository);
-        controller = new PostController(service);
+        final var context = new AnnotationConfigApplicationContext(JavaConfig.class);
+        this.controller = context.getBean("postController", PostController.class);
     }
 
     @Override
     protected void service(HttpServletRequest req, HttpServletResponse resp) {
-        // если деплоились в root context, то достаточно этого
         try {
             final var path = req.getRequestURI();
             final var method = req.getMethod();
-            // primitive routing
             if (method.equals("GET") && path.equals("/api/posts")) {
                 controller.all(resp);
                 return;
             }
             if (method.equals("GET") && path.matches("/api/posts/\\d+")) {
-                // easy way
+
                 final var id = Long.parseLong(path.substring(path.lastIndexOf("/") + 1));
                 controller.getById(id, resp);
                 return;
             }
             if (method.equals("POST") && path.equals("/api/posts")) {
+                /*
+                для целей тестирования функционала использую json запись,
+                отправляемую через дополнительное ПО Insomnia (версия для Линукс)
+
+                body в request выглядит так:
+
+                {
+                    "id": 0,
+                        "content": "Hello, \"world\"!\nNew string."
+                }
+
+                */
+
                 controller.save(req.getReader(), resp);
                 return;
             }
             if (method.equals("DELETE") && path.matches("/api/posts/\\d+")) {
-                // easy way
+
                 final var id = Long.parseLong(path.substring(path.lastIndexOf("/") + 1));
                 controller.removeById(id, resp);
                 return;
